@@ -95,6 +95,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as applicationServer:
     [file_out.write(x) for x in (encryptedSessionKey, cipher_aes1.nonce, tag1, ciphertext1)]
     file_out.close()
     print('\nSent ciphertext: "{}"'.format(ciphertext1))
+    print('\nCentralized certificate authority will now disconnect from the application server...')
+
+
+
 
 
 
