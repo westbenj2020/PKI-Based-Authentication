@@ -61,7 +61,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as applicationServer:
         #  Expected message contents:
         #  [Application Server Public-Key||Application Server Private-Key +\
         #  ||Certificate||Application Server ID||Timestamp2]
-
         file_in = open("encrypted_data.bin", "rb")
         encryptedSessionKey, nonce1, tag1, ciphertext1 = \
             [file_in.read(x) for x in (centralizedCertificateAuthority_publicKey.size_in_bytes(), 16, 16, -1)]
@@ -78,7 +77,31 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as applicationServer:
         print('\nReceived private-key for independent usage: "{}"'.format(receivedApplicationServerPrivateKey))
         certificate = dataDecoded.replace(receivedTimestamp2, '').replace(receivedApplicationServerPublicKey, '').\
             replace(receivedApplicationServerPrivateKey, '').replace(receivedApplicationServerID, '')
-        print('\n certificate = "{}"'.format(certificate))
+        print('\nReceived certificate = "{}"'.format(certificate))
+
+        #  Connecting with client for phase two of protocol
+        client, clientAddress = applicationServer.accept()
+        with client:
+
+            #  Client Registration; reception of message contents
+            #  (Client -> Application Server)
+            #  Expected message contents:
+            #  [Application Server ID||Timestamp3]
+            receivedData = client.recv(1024)
+            print('\nReceived plaintext from client: "{}"'.format(receivedData.decode("utf-8")))
+
+            #  Client Registration; construction and sending of message contents
+            #  (Application Server -> Client)
+            #  Constructed message contents:
+            #  [Application Server Public-Key||Certificate||Timestamp4]
+            timestamp4 = time.time().__trunc__()
+            message = receivedApplicationServerPublicKey + certificate + timestamp4.__str__()
+            encodedMessage = message.encode("utf-8")
+            client.sendall(encodedMessage)
+
+
+
+
 
 
 
