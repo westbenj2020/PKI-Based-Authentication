@@ -61,7 +61,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as applicationServer:
         #  Expected message contents:
         #  [Application Server Public-Key||Application Server Private-Key +\
         #  ||Certificate||Application Server ID||Timestamp2]
-
         file_in = open("encrypted_data.bin", "rb")
         encryptedSessionKey, nonce1, tag1, ciphertext1 = \
             [file_in.read(x) for x in (centralizedCertificateAuthority_publicKey.size_in_bytes(), 16, 16, -1)]
@@ -78,7 +77,67 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as applicationServer:
         print('\nReceived private-key for independent usage: "{}"'.format(receivedApplicationServerPrivateKey))
         certificate = dataDecoded.replace(receivedTimestamp2, '').replace(receivedApplicationServerPublicKey, '').\
             replace(receivedApplicationServerPrivateKey, '').replace(receivedApplicationServerID, '')
-        print('\n certificate = "{}"'.format(certificate))
+        print('\nReceived certificate = "{}"'.format(certificate))
+
+        #  Connecting with client for phase two of protocol
+        client, clientAddress = applicationServer.accept()
+        with client:
+
+            #  Client Registration; reception of message contents (3)
+            #  (Client -> Application Server)
+            #  Expected message contents:
+            #  [Application Server ID||Timestamp3]
+            receivedData = client.recv(1024)
+            print('\nReceived plaintext from client: "{}"'.format(receivedData.decode("utf-8")))
+
+            #  Client Registration; construction and sending of message contents (4)
+            #  (Application Server -> Client)
+            #  Constructed message contents:
+            #  [Application Server Public-Key||Certificate||Timestamp4]
+            timestamp4 = time.time().__trunc__()
+            message = receivedApplicationServerPublicKey + certificate + timestamp4.__str__()
+            encodedMessage = message.encode("utf-8")
+            client.sendall(encodedMessage)
+
+            #  Client Registration; second reception - and parsing - of message contents (5)
+            #  (Client -> Application Server)
+            #  Expected message contents:
+            #  [Temporary Key2||Client ID||Client IP Address||Client Port||Timestamp5]
+            file_in = open("encrypted_data.bin", "rb")
+            applicationServerPrivateKey = \
+                RSA.import_key(open("applicationServer_privateKey.pem").read())
+            encryptedSessionKey5, nonce5, tag5, ciphertext5 = \
+                [file_in.read(x) for x in (applicationServerPrivateKey.size_in_bytes(), 16, 16, -1)]
+            RSA_cipher5 = PKCS1_OAEP.new(applicationServerPrivateKey)
+            session_key5 = RSA_cipher5.decrypt(encryptedSessionKey5)
+            cipher_aes5 = AES.new(session_key5, AES.MODE_EAX, nonce5)
+            print('\nReceived ciphertext: "{}"'.format(ciphertext5))
+            data5 = cipher_aes5.decrypt_and_verify(ciphertext5, tag5)
+            data5Decoded = data5.decode("utf-8")
+            marker = data5Decoded.index("ID-Cl")
+            tempKey2 = data5[0:marker]
+            print('\nReceived temporary-key: "{}"'.format(tempKey2))
+
+            #  Client Registration; construction and sending of message contents (6)
+            #  (Application Server -> Client)
+            #  Constructed message contents:
+            #  [Session Key||Session Lifetime||Client ID||Timestamp6]
+            Ksess = get_random_bytes(8)
+            timestamp6 = time.time().__trunc__()
+            message6 = Ksess.__str__() + sessionLifetime.__str__() + client1_id + timestamp6.__str__()
+            message6Encoded = message6.encode("utf-8")
+            cipher6 = DES.new(tempKey2, DES.MODE_OFB)
+            message6Final = cipher6.iv + cipher6.encrypt(message6Encoded)
+            file_out = open("encrypted_data.bin", "wb")
+            file_out.flush()
+            file_out.write(message6Final)
+            time.sleep(5)
+
+
+
+
+
+
 
 
 
