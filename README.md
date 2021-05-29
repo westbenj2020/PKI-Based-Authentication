@@ -15,4 +15,5 @@ This project integrates classroom knowledge of socket programming, basic network
 
 Note: When running three separated command lines for each source file, make sure to run applicationServer.py and then centralizedCertificateAuthority.py. After receiving errors, a successful execution can be performed by running centralizedCertificateAuthority.py, then applicationServer.py, and finally client1.py. This sequence-of-execution inhibition can be remedied through the utilization of effective timing mechanisms, such as sleep(). If further development is pursued for this project, it is reccomended to implement the aforementioned solution.
 
-https://github.com/westbenj2020/PKI-Based-Authentication/blob/main/Lab7_MessageFlow.JPG?raw=true
+![image](https://user-images.githubusercontent.com/38194972/120053692-b2a74280-bff9-11eb-9312-f38b56e97d35.png)
+
